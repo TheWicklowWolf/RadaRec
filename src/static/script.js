@@ -202,7 +202,7 @@ config_modal.addEventListener('show.bs.modal', function (event) {
     socket.on("settings_loaded", handle_settings_loaded);
 });
 
-radarr_sidebar.addEventListener('movie.bs.offcanvas', function (event) {
+radarr_sidebar.addEventListener('show.bs.offcanvas', function (event) {
     socket.emit("side_bar_opened");
 });
 
