@@ -170,7 +170,7 @@ class DataHandler:
         finally:
             socketio.emit("radarr_sidebar_update", ret)
 
-    def request_movie_id(self, movie_name):
+    def request_movie_id(self, movie_name, movie_year=None):
         url = f"https://api.themoviedb.org/3/search/movie"
         params = {"api_key": self.tmdb_api_key, "query": movie_name}
         response = requests.get(url, params=params)
@@ -178,7 +178,7 @@ class DataHandler:
         ret = None
         if data:
             for movie in data["results"]:
-                if fuzz.ratio(movie_name, movie["original_title"]) > 90:
+                if fuzz.ratio(movie_name, movie["original_title"]) > 90 and (movie["release_date"][:4] == movie_year or not movie_year):
                     ret = movie["id"]
                     break
         return ret
@@ -302,17 +302,18 @@ class DataHandler:
             finally:
                 self.search_in_progress_flag = False
 
-    def add_movies(self, raw_movie_name):
+    def add_movies(self, data):
         try:
+            raw_movie_name, movie_year = data
             movie_name = urllib.parse.unquote(raw_movie_name)
             movie_folder = movie_name.replace("/", " ")
             tmdb_id = None
             for movie in self.similar_movies:
-                if movie["Name"] == movie_name:
+                if movie["Name"] == movie_name and movie["Year"] == movie_year:
                     tmdb_id = movie["TMDB_ID"]
                     break
             else:
-                tmdb_id = self.request_movie_id(movie_name)
+                tmdb_id = self.request_movie_id(movie_name, movie_year)
 
             if tmdb_id:
                 radarr_url = f"{self.radarr_address}/api/v3/movie"
@@ -355,8 +356,8 @@ class DataHandler:
                     elif "Invalid Path" in error_message:
                         status = "Invalid Path"
                         self.radarec_logger.info(f"Path: {os.path.join(self.root_folder_path, movie_folder, '')} not valid.")
-                    elif "series with this ID was not found" in error_message:
-                        status = "Invalid Series ID"
+                    elif "ID was not found" in error_message:
+                        status = "Invalid Movie ID"
                         self.radarec_logger.info(f"ID: {tmdb_id} for '{movie_folder}' not correct")
                     else:
                         status = "Failed to Add"

@@ -71,7 +71,7 @@ function append_movies(movies) {
         movie_col.querySelector('.add-to-radarr-btn').addEventListener('click', function () {
             var add_button = this;
             add_button.disabled = true;
-            add_to_radarr(movie.Name);
+            add_to_radarr(movie.Name, movie.Year);
         });
         movie_col.querySelector('.get-overview-btn').addEventListener('click', function () {
             overview_req(movie);
@@ -86,7 +86,7 @@ function append_movies(movies) {
             add_button.classList.add('btn-secondary');
             add_button.disabled = true;
             add_button.textContent = movie.Status;
-        } else if (movie.Status === "Failed to Add" || movie.Status === "Invalid Path") {
+        } else if (movie.Status === "Failed to Add" || movie.Status === "Invalid Path" || movie.Status === "Invalid Movie ID") {
             movie_col.querySelector('.card-body').classList.add('status-red');
             add_button.classList.remove('btn-primary');
             add_button.classList.add('btn-danger');
@@ -99,9 +99,9 @@ function append_movies(movies) {
     });
 }
 
-function add_to_radarr(movie_name) {
+function add_to_radarr(movie_name, movie_year) {
     if (socket.connected) {
-        socket.emit('adder', encodeURIComponent(movie_name));
+        socket.emit('adder', [encodeURIComponent(movie_name), movie_year]);
     }
     else {
         movie_toast("Connection Lost", "Please reload to continue.");
