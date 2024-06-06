@@ -41,6 +41,8 @@ Certain values can be set via environment variables:
 * __minimum_rating__: Minimum Movie Rating. Defaults to `5.5`.
 * __minimum_votes__: Minimum Vote Count. Defaults to `50`.
 * __language_choice__: Chosen Language in ISO-639 two letter format. Defaults to `all`.
+* __auto_start__: Whether to run automatically at startup. Defaults to `False`.
+* __auto_start_delay__: Delay duration for Auto Start in Seconds (if enabled). Defaults to `60`.
 
 ---
 
