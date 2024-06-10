@@ -104,11 +104,11 @@ function add_to_radarr(movie_name, movie_year) {
         socket.emit('adder', [encodeURIComponent(movie_name), movie_year]);
     }
     else {
-        movie_toast("Connection Lost", "Please reload to continue.");
+        show_toast("Connection Lost", "Please reload to continue.");
     }
 }
 
-function movie_toast(header, message) {
+function show_toast(header, message) {
     var toast_container = document.querySelector('.toast-container');
     var toast_template = document.getElementById('toast-template').cloneNode(true);
     toast_template.classList.remove('d-none');
@@ -160,7 +160,7 @@ start_stop_button.addEventListener('click', function () {
         radarr_select_all_checkbox.disabled = true;
         socket.emit("start_req", checked_items);
         if (checked_items.length > 0) {
-            movie_toast("Loading new movies");
+            show_toast("Loading new movies");
         }
     }
     else {
@@ -309,23 +309,27 @@ socket.on('more_movies_loaded', function (data) {
 });
 
 socket.on('clear', function () {
+    clear_all();
+});
+
+socket.on("new_toast_msg", function (data) {
+    show_toast(data.title, data.message);
+});
+
+socket.on("disconnect", function () {
+    show_toast("Connection Lost", "Please refresh to continue.");
+    clear_all();
+});
+
+function clear_all() {
     var movie_row = document.getElementById('movie-row');
     var movie_cards = movie_row.querySelectorAll('#movie-column');
     movie_cards.forEach(function (card) {
         card.remove();
     });
-});
-
-socket.on("new_toast_msg", function (data) {
-    movie_toast(data.title, data.message);
-});
-
-socket.on("disconnect", function () {
-    movie_toast("Connection Lost", "Please reconnect to continue.");
-});
+}
 
 let overview_request_flag = false;
-
 function overview_req(movie) {
     if (!overview_request_flag) {
         overview_request_flag = true;
