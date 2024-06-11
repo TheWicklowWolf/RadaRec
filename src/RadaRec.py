@@ -22,7 +22,7 @@ class DataHandler:
         self.new_found_movies_counter = 0
         self.clients_connected_counter = 0
         self.config_folder = "config"
-        self.similar_movies = []
+        self.recommended_movies = []
         self.radarr_items = []
         self.cleaned_radarr_items = []
         self.stop_event = threading.Event()
@@ -113,15 +113,14 @@ class DataHandler:
         self.start(items)
 
     def connection(self):
-        if self.similar_movies:
+        if self.recommended_movies:
             if self.clients_connected_counter == 0:
-                if len(self.similar_movies) > 15:
-                    self.similar_movies = random.sample(self.similar_movies, 15)
+                if len(self.recommended_movies) > 25:
+                    self.recommended_movies = random.sample(self.recommended_movies, 25)
                 else:
                     self.radarec_logger.info(f"Shuffling Movies")
-                    random.shuffle(self.similar_movies)
-                self.raw_new_movies = []
-            socketio.emit("more_movies_loaded", self.similar_movies)
+                    random.shuffle(self.recommended_movies)
+            socketio.emit("more_movies_loaded", self.recommended_movies)
 
         self.clients_connected_counter += 1
 
@@ -132,9 +131,8 @@ class DataHandler:
         try:
             socketio.emit("clear")
             self.new_found_movies_counter = 1
-            self.raw_new_movies = []
             self.movies_to_use_in_search = []
-            self.similar_movies = []
+            self.recommended_movies = []
 
             for item in self.radarr_items:
                 item_name = item["name"]
@@ -248,7 +246,7 @@ class DataHandler:
                 self.radarec_logger.info(f"Searching for new movies")
                 self.new_found_movies_counter = 0
                 self.search_in_progress_flag = True
-                random_movies = random.sample(self.movies_to_use_in_search, min(5, len(self.movies_to_use_in_search)))
+                random_movies = random.sample(self.movies_to_use_in_search, min(8, len(self.movies_to_use_in_search)))
 
                 for movie_name in random_movies:
                     if self.stop_event.is_set():
@@ -261,46 +259,47 @@ class DataHandler:
                         if self.stop_event.is_set():
                             break
                         cleaned_movie = unidecode(movie["title"]).lower()
-                        if cleaned_movie not in self.cleaned_radarr_items and not any(movie["title"] == item["Name"] for item in self.raw_new_movies):
-                            genres = ", ".join(self.map_genre_ids_to_names(movie.get("genre_ids", [])))
-                            overview = movie.get("overview", "")
-                            popularity = movie.get("popularity", "")
-                            original_language_code = movie.get("original_language", "en")
-                            original_language = Lang(original_language_code)
-                            vote_count = movie.get("vote_count", 0)
-                            vote_avg = movie.get("vote_average", 0)
-                            img_link = movie.get("poster_path", "")
-                            date_string = movie.get("release_date", "0000-01-01")
-                            year = date_string.split("-")[0]
-                            tmdb_id = movie.get("id", "")
-                            if img_link:
-                                img_url = f"https://image.tmdb.org/t/p/original/{img_link}"
-                            else:
-                                img_url = "https://via.placeholder.com/300x200"
+                        if cleaned_movie in self.cleaned_radarr_items:
+                            continue
+                        if any(movie["title"] == item["Name"] for item in self.recommended_movies):
+                            continue
+                        genres = ", ".join(self.map_genre_ids_to_names(movie.get("genre_ids", [])))
+                        overview = movie.get("overview", "")
+                        popularity = movie.get("popularity", "")
+                        original_language_code = movie.get("original_language", "en")
+                        original_language = Lang(original_language_code)
+                        vote_count = movie.get("vote_count", 0)
+                        vote_avg = movie.get("vote_average", 0)
+                        img_link = movie.get("poster_path", "")
+                        date_string = movie.get("release_date", "0000-01-01")
+                        year = date_string.split("-")[0]
+                        tmdb_id = movie.get("id", "")
+                        if img_link:
+                            img_url = f"https://image.tmdb.org/t/p/original/{img_link}"
+                        else:
+                            img_url = "https://via.placeholder.com/300x200"
 
-                            exclusive_movie = {
-                                "Name": movie["title"],
-                                "Year": year if year else "0000",
-                                "Genre": genres,
-                                "Status": "",
-                                "Img_Link": img_url,
-                                "Votes": f"Votes: {vote_count}",
-                                "Rating": f"Rating: {vote_avg}",
-                                "Overview": overview,
-                                "Language": original_language.name,
-                                "Popularity": popularity,
-                                "Base_Movie": movie_name,
-                                "TMDB_ID": tmdb_id,
-                            }
-                            self.raw_new_movies.append(exclusive_movie)
-                            socketio.emit("more_movies_loaded", [exclusive_movie])
-                            self.new_found_movies_counter += 1
+                        exclusive_movie = {
+                            "Name": movie["title"],
+                            "Year": year if year else "0000",
+                            "Genre": genres,
+                            "Status": "",
+                            "Img_Link": img_url,
+                            "Votes": f"Votes: {vote_count}",
+                            "Rating": f"Rating: {vote_avg}",
+                            "Overview": overview,
+                            "Language": original_language.name,
+                            "Popularity": popularity,
+                            "Base_Movie": movie_name,
+                            "TMDB_ID": tmdb_id,
+                        }
+                        self.recommended_movies.append(exclusive_movie)
+                        socketio.emit("more_movies_loaded", [exclusive_movie])
+                        self.new_found_movies_counter += 1
 
                 if self.new_found_movies_counter == 0:
                     self.radarec_logger.info("Search Exhausted - Try selecting more movies from existing Radarr library")
                     socketio.emit("new_toast_msg", {"title": "Search Exhausted", "message": "Try selecting more movies from existing Radarr library"})
-                else:
-                    self.similar_movies.extend(self.raw_new_movies)
 
             except Exception as e:
                 self.radarec_logger.error(f"TheMovieDB Error: {str(e)}")
@@ -327,7 +326,7 @@ class DataHandler:
             movie_name = urllib.parse.unquote(raw_movie_name)
             movie_folder = movie_name.replace("/", " ")
             tmdb_id = None
-            for movie in self.similar_movies:
+            for movie in self.recommended_movies:
                 if movie["Name"] == movie_name and movie["Year"] == movie_year:
                     tmdb_id = movie["TMDB_ID"]
                     break
@@ -386,7 +385,7 @@ class DataHandler:
                 self.radarec_logger.info(f"No Matching Movie for: '{movie_name}' in The Movie Database.")
                 socketio.emit("new_toast_msg", {"title": "Failed to add Movie", "message": f"No Matching Movie for: '{movie_name}' in The Movie Database."})
 
-            for item in self.similar_movies:
+            for item in self.recommended_movies:
                 if item["Name"] == movie_name:
                     item["Status"] = status
                     socketio.emit("refresh_movie", item)
