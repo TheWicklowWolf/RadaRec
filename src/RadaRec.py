@@ -18,6 +18,13 @@ class DataHandler:
     def __init__(self):
         logging.basicConfig(level=logging.INFO, format="%(message)s")
         self.radarec_logger = logging.getLogger()
+
+        app_name_text = os.path.basename(__file__).replace(".py", "")
+        release_version = os.environ.get("RELEASE_VERSION", "unknown")
+        self.radarec_logger.warning(f"{'*' * 50}\n")
+        self.radarec_logger.warning(f"{app_name_text} Version: {release_version}\n")
+        self.radarec_logger.warning(f"{'*' * 50}")
+
         self.search_in_progress_flag = False
         self.new_found_movies_counter = 0
         self.clients_connected_counter = 0

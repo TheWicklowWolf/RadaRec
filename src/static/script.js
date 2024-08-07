@@ -71,6 +71,7 @@ function append_movies(movies) {
         movie_col.querySelector('.add-to-radarr-btn').addEventListener('click', function () {
             var add_button = this;
             add_button.disabled = true;
+            add_button.textContent = "Adding...";
             add_to_radarr(movie.Name, movie.Year);
         });
         movie_col.querySelector('.get-overview-btn').addEventListener('click', function () {
