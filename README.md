@@ -28,6 +28,8 @@ services:
 
 Certain values can be set via environment variables:
 
+* __PUID__: The user ID to run the app with. Defaults to `1000`. 
+* __PGID__: The group ID to run the app with. Defaults to `1000`.
 * __radarr_address__: The URL for Radarr. Defaults to `http://192.168.1.2:8686`.
 * __radarr_api_key__: The API key for Radarr. Defaults to ``.
 * __root_folder_path__: The root folder path for Movies. Defaults to `/data/media/movies/`.
